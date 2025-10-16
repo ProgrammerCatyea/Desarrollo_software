@@ -1,0 +1,44 @@
+[
+    {
+        "id": 1,
+        "nombre": "Elden Ring",
+        "categoria_id": 1,
+        "descripcion": "RPG de mundo abierto desarrollado por FromSoftware.",
+        "precio": 59.99,
+        "calificacion": 9.8
+    },
+    {
+        "id": 2,
+        "nombre": "Valorant",
+        "categoria_id": 2,
+        "descripcion": "Shooter táctico por equipos desarrollado por Riot Games.",
+        "precio": 0.0,
+        "calificacion": 8.7
+    },
+    {
+        "id": 3,
+        "nombre": "Minecraft",
+        "categoria_id": 3,
+        "descripcion": "Sandbox creativo con construcción y supervivencia.",
+        "precio": 26.95,
+        "calificacion": 9.5
+    },
+    {
+        "id": 4,
+        "nombre": "string",
+        "descripcion": "string",
+        "categorias": [
+            {
+                "id": 0,
+                "nombre": "string"
+            }
+        ],
+        "jugadores": [
+            {
+                "id": 0,
+                "nombre": "string",
+                "correo": "string"
+            }
+        ]
+    }
+]
