@@ -1,11 +1,8 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Table, create_engine
-from sqlalchemy.orm import relationship, declarative_base, sessionmaker
+from sqlalchemy import Column, Integer, String, ForeignKey, Table
+from sqlalchemy.orm import relationship, declarative_base
 from pydantic import BaseModel
+from typing import List, Optional
 
-DATABASE_URL = "sqlite:///./videojuegos.db"
-
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
@@ -13,9 +10,8 @@ juego_categoria = Table(
     "juego_categoria",
     Base.metadata,
     Column("juego_id", Integer, ForeignKey("juegos.id"), primary_key=True),
-    Column("categoria_id", Integer, ForeignKey("categorias.id"), primary_key=True)
+    Column("categoria_id", Integer, ForeignKey("categorias.id"), primary_key=True),
 )
-
 
 
 class Jugador(Base):
@@ -26,7 +22,6 @@ class Jugador(Base):
     pais = Column(String)
     nivel = Column(String)
 
- 
     juegos = relationship("Juego", back_populates="jugador")
 
 
@@ -37,11 +32,10 @@ class Categoria(Base):
     nombre = Column(String, nullable=False, unique=True)
     descripcion = Column(String)
 
-   
     juegos = relationship(
         "Juego",
         secondary=juego_categoria,
-        back_populates="categorias"
+        back_populates="categorias",
     )
 
 
@@ -53,19 +47,24 @@ class Juego(Base):
     plataforma = Column(String)
     jugador_id = Column(Integer, ForeignKey("jugadores.id"))
 
- 
     jugador = relationship("Jugador", back_populates="juegos")
     categorias = relationship(
         "Categoria",
         secondary=juego_categoria,
-        back_populates="juegos"
+        back_populates="juegos",
     )
-
 
 
 class CategoriaBase(BaseModel):
     nombre: str
-    descripcion: str | None = None
+    descripcion: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CategoriaSchema(CategoriaBase):
+    id: int
 
     class Config:
         from_attributes = True
@@ -73,8 +72,15 @@ class CategoriaBase(BaseModel):
 
 class JugadorBase(BaseModel):
     nombre: str
-    pais: str | None = None
-    nivel: str | None = None
+    pais: Optional[str] = None
+    nivel: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class JugadorSchema(JugadorBase):
+    id: int
 
     class Config:
         from_attributes = True
@@ -82,9 +88,18 @@ class JugadorBase(BaseModel):
 
 class JuegoBase(BaseModel):
     nombre: str
-    plataforma: str | None = None
+    plataforma: Optional[str] = None
     jugador_id: int
-    categorias: list[str] = []
+    categoria_ids: List[int] = []  
+
+    class Config:
+        from_attributes = True
+
+
+class JuegoSchema(JuegoBase):
+    id: int
+    jugador: Optional[JugadorSchema] = None
+    categorias: List[CategoriaSchema] = []
 
     class Config:
         from_attributes = True
