@@ -1,19 +1,17 @@
 from fastapi import FastAPI, HTTPException, Depends
+from typing import List
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
-from modelos import Base, Juego, Jugador, Categoria, juego_categoria
-from typing import List
-import csv
+from modelos import Base, Juego, Jugador, Categoria, JuegoSchema, JugadorSchema, CategoriaSchema
 
-DATABASE_URL = "sqlite:///data/juegos.db"
-
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Proyecto de Videojuegos", version="2.0")
 
+DATABASE_URL = "sqlite:///./data/juegos.db"
+
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+Base.metadata.create_all(bind=engine)
 
 def get_db():
     db = SessionLocal()
@@ -22,31 +20,35 @@ def get_db():
     finally:
         db.close()
 
-@app.get("/juegos", response_model=List[Juego])
+
+@app.get("/juegos", response_model=List[JuegoSchema])
 def obtener_juegos(db: Session = Depends(get_db)):
     return db.query(Juego).all()
 
-@app.get("/juegos/{juego_id}", response_model=Juego)
-def obtener_juego(juego_id: int, db: Session = Depends(get_db)):
+@app.get("/juegos/{juego_id}", response_model=JuegoSchema)
+def obtener_juego_por_id(juego_id: int, db: Session = Depends(get_db)):
     juego = db.query(Juego).filter(Juego.id == juego_id).first()
     if not juego:
         raise HTTPException(status_code=404, detail="Juego no encontrado")
     return juego
 
-@app.post("/juegos", response_model=Juego)
-def crear_juego(juego: Juego, db: Session = Depends(get_db)):
-    db.add(juego)
+@app.post("/juegos", response_model=JuegoSchema)
+def crear_juego(juego: JuegoSchema, db: Session = Depends(get_db)):
+    nuevo_juego = Juego(nombre=juego.nombre, plataforma=juego.plataforma, jugador_id=juego.jugador_id)
+    db.add(nuevo_juego)
     db.commit()
-    db.refresh(juego)
-    return juego
+    db.refresh(nuevo_juego)
+    return nuevo_juego
 
-@app.put("/juegos/{juego_id}", response_model=Juego)
-def actualizar_juego(juego_id: int, datos: Juego, db: Session = Depends(get_db)):
+@app.put("/juegos/{juego_id}", response_model=JuegoSchema)
+def actualizar_juego(juego_id: int, juego_actualizado: JuegoSchema, db: Session = Depends(get_db)):
     juego = db.query(Juego).filter(Juego.id == juego_id).first()
     if not juego:
         raise HTTPException(status_code=404, detail="Juego no encontrado")
-    for key, value in datos.dict().items():
-        setattr(juego, key, value)
+
+    juego.nombre = juego_actualizado.nombre
+    juego.plataforma = juego_actualizado.plataforma
+    juego.jugador_id = juego_actualizado.jugador_id
     db.commit()
     db.refresh(juego)
     return juego
@@ -56,49 +58,35 @@ def eliminar_juego(juego_id: int, db: Session = Depends(get_db)):
     juego = db.query(Juego).filter(Juego.id == juego_id).first()
     if not juego:
         raise HTTPException(status_code=404, detail="Juego no encontrado")
+
     db.delete(juego)
     db.commit()
-    return {"mensaje": "Juego eliminado correctamente"}
+    return {"mensaje": f"Juego con ID {juego_id} eliminado correctamente"}
 
 
-@app.get("/jugadores", response_model=List[Jugador])
+
+@app.get("/jugadores", response_model=List[JugadorSchema])
 def obtener_jugadores(db: Session = Depends(get_db)):
     return db.query(Jugador).all()
 
-@app.post("/jugadores", response_model=Jugador)
-def crear_jugador(jugador: Jugador, db: Session = Depends(get_db)):
-    db.add(jugador)
+@app.post("/jugadores", response_model=JugadorSchema)
+def crear_jugador(jugador: JugadorSchema, db: Session = Depends(get_db)):
+    nuevo_jugador = Jugador(nombre=jugador.nombre, pais=jugador.pais, nivel=jugador.nivel)
+    db.add(nuevo_jugador)
     db.commit()
-    db.refresh(jugador)
-    return jugador
+    db.refresh(nuevo_jugador)
+    return nuevo_jugador
 
 
-@app.get("/categorias", response_model=List[Categoria])
+
+@app.get("/categorias", response_model=List[CategoriaSchema])
 def obtener_categorias(db: Session = Depends(get_db)):
     return db.query(Categoria).all()
 
-@app.post("/categorias", response_model=Categoria)
-def crear_categoria(categoria: Categoria, db: Session = Depends(get_db)):
-    db.add(categoria)
+@app.post("/categorias", response_model=CategoriaSchema)
+def crear_categoria(categoria: CategoriaSchema, db: Session = Depends(get_db)):
+    nueva_categoria = Categoria(nombre=categoria.nombre, descripcion=categoria.descripcion)
+    db.add(nueva_categoria)
     db.commit()
-    db.refresh(categoria)
-    return categoria
-
-
-@app.get("/juegos/buscar/{nombre}", response_model=List[Juego])
-def buscar_juego_por_nombre(nombre: str, db: Session = Depends(get_db)):
-    juegos = db.query(Juego).filter(Juego.nombre.ilike(f"%{nombre}%")).all()
-    if not juegos:
-        raise HTTPException(status_code=404, detail="No se encontraron juegos con ese nombre")
-    return juegos
-
-
-@app.get("/reporte")
-def generar_reporte(db: Session = Depends(get_db)):
-    juegos = db.query(Juego).all()
-    with open("report/reporte.csv", "w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
-        writer.writerow(["ID", "Nombre", "Plataforma", "Categoría"])
-        for juego in juegos:
-            writer.writerow([juego.id, juego.nombre, juego.plataforma, juego.categoria_id])
-    return {"mensaje": "Reporte generado exitosamente"}
+    db.refresh(nueva_categoria)
+    return nueva_categoria
