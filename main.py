@@ -14,7 +14,7 @@ from modelos import (
     JuegoEliminadoSchema
 )
 
-app = FastAPI(title="Proyecto de Videojuegos", version="4.0")
+app = FastAPI(title="Proyecto de Videojuegos", version="4.1")
 
 
 DATABASE_URL = "sqlite:///./data/juegos.db"
@@ -87,6 +87,7 @@ def eliminar_juego(juego_id: int, db: Session = Depends(get_db)):
     if not juego:
         raise HTTPException(status_code=404, detail="Juego no encontrado")
 
+
     juego_eliminado = JuegoEliminado(
         id=juego.id,
         nombre=juego.nombre,
@@ -94,7 +95,6 @@ def eliminar_juego(juego_id: int, db: Session = Depends(get_db)):
         jugador_id=juego.jugador_id
     )
     db.add(juego_eliminado)
-
     db.delete(juego)
     db.commit()
     return {"mensaje": f"Juego con ID {juego_id} eliminado y archivado correctamente"}

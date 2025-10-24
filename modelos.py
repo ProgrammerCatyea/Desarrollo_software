@@ -5,12 +5,14 @@ from typing import List, Optional
 
 Base = declarative_base()
 
+
 juego_categoria = Table(
     "juego_categoria",
     Base.metadata,
     Column("juego_id", Integer, ForeignKey("juegos.id"), primary_key=True),
     Column("categoria_id", Integer, ForeignKey("categorias.id"), primary_key=True),
 )
+
 
 
 class Jugador(Base):
@@ -64,20 +66,16 @@ class JuegoEliminado(Base):
 
 
 
-class CategoriaBase(BaseModel):
+class CategoriaSchema(BaseModel):
+    id: Optional[int] = None
     nombre: str
     descripcion: Optional[str] = None
     class Config:
         from_attributes = True
 
 
-class CategoriaSchema(CategoriaBase):
-    id: int
-    class Config:
-        from_attributes = True
-
-
-class JugadorBase(BaseModel):
+class JugadorSchema(BaseModel):
+    id: Optional[int] = None
     nombre: str
     pais: Optional[str] = None
     nivel: Optional[str] = None
@@ -85,25 +83,12 @@ class JugadorBase(BaseModel):
         from_attributes = True
 
 
-class JugadorSchema(JugadorBase):
-    id: int
-    class Config:
-        from_attributes = True
-
-
-class JuegoBase(BaseModel):
+class JuegoSchema(BaseModel):
+    id: Optional[int] = None
     nombre: str
     plataforma: Optional[str] = None
     jugador_id: int
     categorias: List[str] = []
-    class Config:
-        from_attributes = True
-
-
-class JuegoSchema(JuegoBase):
-    id: int
-    jugador: Optional[JugadorSchema] = None
-    categorias: List[CategoriaSchema] = []
     class Config:
         from_attributes = True
 
