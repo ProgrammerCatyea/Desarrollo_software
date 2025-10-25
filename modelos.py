@@ -66,10 +66,12 @@ class JuegoEliminado(Base):
 
 
 
-class CategoriaSchema(BaseModel):
+
+class CategoriaBase(BaseModel):
     id: Optional[int] = None
     nombre: str
     descripcion: Optional[str] = None
+
     class Config:
         from_attributes = True
 
@@ -79,6 +81,7 @@ class JugadorSchema(BaseModel):
     nombre: str
     pais: Optional[str] = None
     nivel: Optional[str] = None
+
     class Config:
         from_attributes = True
 
@@ -88,7 +91,18 @@ class JuegoSchema(BaseModel):
     nombre: str
     plataforma: Optional[str] = None
     jugador_id: int
-    categorias: List[str] = []
+    categorias: Optional[List[CategoriaBase]] = []
+
+    class Config:
+        from_attributes = True
+
+
+class JuegoCreateSchema(BaseModel):
+    nombre: str
+    plataforma: Optional[str]
+    jugador_id: int
+    categorias: Optional[List[int]] = []  
+
     class Config:
         from_attributes = True
 
@@ -98,5 +112,6 @@ class JuegoEliminadoSchema(BaseModel):
     nombre: str
     plataforma: Optional[str]
     jugador_id: Optional[int]
+
     class Config:
         from_attributes = True

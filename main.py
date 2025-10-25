@@ -9,19 +9,19 @@ from modelos import (
     Categoria,
     JuegoEliminado,
     JuegoSchema,
+    JuegoCreateSchema,
     JugadorSchema,
-    CategoriaSchema,
+    CategoriaBase,
     JuegoEliminadoSchema
 )
 
-app = FastAPI(title="Proyecto de Videojuegos", version="4.1")
+app = FastAPI(title="Proyecto de Videojuegos", version="5.0")
 
 
 DATABASE_URL = "sqlite:///./data/juegos.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base.metadata.create_all(bind=engine)
-
 
 def get_db():
     db = SessionLocal()
@@ -55,12 +55,18 @@ def obtener_juego_por_id(juego_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/juegos", response_model=JuegoSchema)
-def crear_juego(juego: JuegoSchema, db: Session = Depends(get_db)):
+def crear_juego(juego: JuegoCreateSchema, db: Session = Depends(get_db)):
     nuevo_juego = Juego(
         nombre=juego.nombre,
         plataforma=juego.plataforma,
         jugador_id=juego.jugador_id
     )
+
+  
+    if juego.categorias:
+        categorias = db.query(Categoria).filter(Categoria.id.in_(juego.categorias)).all()
+        nuevo_juego.categorias = categorias
+
     db.add(nuevo_juego)
     db.commit()
     db.refresh(nuevo_juego)
@@ -68,7 +74,7 @@ def crear_juego(juego: JuegoSchema, db: Session = Depends(get_db)):
 
 
 @app.put("/juegos/{juego_id}", response_model=JuegoSchema)
-def actualizar_juego(juego_id: int, juego_actualizado: JuegoSchema, db: Session = Depends(get_db)):
+def actualizar_juego(juego_id: int, juego_actualizado: JuegoCreateSchema, db: Session = Depends(get_db)):
     juego = db.query(Juego).filter(Juego.id == juego_id).first()
     if not juego:
         raise HTTPException(status_code=404, detail="Juego no encontrado")
@@ -76,6 +82,11 @@ def actualizar_juego(juego_id: int, juego_actualizado: JuegoSchema, db: Session 
     juego.nombre = juego_actualizado.nombre
     juego.plataforma = juego_actualizado.plataforma
     juego.jugador_id = juego_actualizado.jugador_id
+
+    if juego_actualizado.categorias:
+        categorias = db.query(Categoria).filter(Categoria.id.in_(juego_actualizado.categorias)).all()
+        juego.categorias = categorias
+
     db.commit()
     db.refresh(juego)
     return juego
@@ -87,13 +98,13 @@ def eliminar_juego(juego_id: int, db: Session = Depends(get_db)):
     if not juego:
         raise HTTPException(status_code=404, detail="Juego no encontrado")
 
-
     juego_eliminado = JuegoEliminado(
         id=juego.id,
         nombre=juego.nombre,
         plataforma=juego.plataforma,
         jugador_id=juego.jugador_id
     )
+
     db.add(juego_eliminado)
     db.delete(juego)
     db.commit()
@@ -121,13 +132,13 @@ def crear_jugador(jugador: JugadorSchema, db: Session = Depends(get_db)):
 
 
 
-@app.get("/categorias", response_model=List[CategoriaSchema])
+@app.get("/categorias", response_model=List[CategoriaBase])
 def obtener_categorias(db: Session = Depends(get_db)):
     return db.query(Categoria).all()
 
 
-@app.post("/categorias", response_model=CategoriaSchema)
-def crear_categoria(categoria: CategoriaSchema, db: Session = Depends(get_db)):
+@app.post("/categorias", response_model=CategoriaBase)
+def crear_categoria(categoria: CategoriaBase, db: Session = Depends(get_db)):
     nueva_categoria = Categoria(nombre=categoria.nombre, descripcion=categoria.descripcion)
     db.add(nueva_categoria)
     db.commit()
